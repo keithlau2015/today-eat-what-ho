@@ -31,19 +31,36 @@ var options = {
 
 function App() {
   //const [cameraState, setCameraState] = useState<MapCameraProps>();
-  const [radius, setRadius] = useState({ values: [0] });
+  const [radius, setRadius] = useState({ values: [1] });
   const [curCrd, setCurCrd] = useState({ latitude: 0, longitude: 0 });
   const [firstGetGeolocation, setFirstGetGeolocation] = useState(false);
 
   async function requestPlaceAPI() {
-
-    await fetch(`https://maps.googleapis.com/maps/api/place/nearbysearch/json?keyword=cruise&location=${curCrd.latitude ?? 0}%${curCrd.longitude ?? 0}&radius=${radius.values[0]}&type=restaurant&key=${MAPS_API_KEY}`, {
-      method: 'GET',
+    const response = await fetch(`https://places.googleapis.com/v1/places:searchNearby`, {
+      mode: "cors",
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-      }
-    })
-    .then(response => response.json());
+        'X-Goog-Api-Key': MAPS_API_KEY,
+        'X-Goog-FieldMask': 'places.displayName'
+      },
+      body: JSON.stringify({
+        'includedTypes': ["restaurant"],
+        "maxResultCount": 10,
+        "locationRestriction": {
+          "circle": {
+            "center": {
+              "latitude": curCrd.latitude,
+              "longitude": curCrd.longitude},
+            "radius": radius.values[0]
+          }
+        }
+      })
+    });
+    const jsonObj = await response.json();
+    console.log(jsonObj);
+    const places = jsonObj.places;
+    console.log(places);
   }
 
   function errors(err) {
@@ -64,6 +81,7 @@ function App() {
     console.log(`Latitude : ${crd.latitude}`);
     console.log(`Longitude: ${crd.longitude}`);
     console.log(`More or less ${crd.accuracy} meters.`);
+    console.log(`Current radius ${radius.values[0]}.`);
     setCurCrd(crd);
     requestPlaceAPI();
   }
@@ -102,6 +120,13 @@ function App() {
         onLoad={() => console.log('Maps API has loaded.')}
         solutionChannel="GMP_idx_templates_v0_reactts"
         >
+          <button
+            style={ { height:"50px", width: "50px", backgroundColor: "black", position: "fixed", left: "40px", zIndex: "999"}}
+            onClick={() => {}}
+          >
+            
+          </button>
+
           <button 
             onClick={() => getUserLocation()}
           >
@@ -111,8 +136,8 @@ function App() {
           Searching Radius
           <Range            
             step={0.1}
-            min={0}
-            max={50}
+            min={1}
+            max={1000}
             values={radius.values}
             onChange={(values) => setRadius({values})} 
             renderTrack={({ props, children }) => (
