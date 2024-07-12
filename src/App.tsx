@@ -1,11 +1,15 @@
-import React, { SetStateAction, useState } from 'react';
+import React, { SetStateAction, useEffect, useState } from 'react';
 import './App.css';
 import {
   APIProvider,
   Map,
+  MapCameraChangedEvent,
   MapCameraProps,
   Marker,
 } from '@vis.gl/react-google-maps';
+import { Range } from 'react-range';
+import { IRenderThumbParams, IRenderTrackParams } from 'react-range/lib/types';
+import { createRoot } from 'react-dom/client';
 
 // TODO: Get a Google Maps Platform API key:
 /*
@@ -18,119 +22,138 @@ import {
  * 7. Replace YOUR_API_KEY with the API key you got in step 4. */
 const MAPS_API_KEY = import.meta.env.VITE_MAPS_API_KEY as string;
 
-const SANTIAGO_LOCATION = { lat: -33.45722938110794, lng: -70.66642630502507 };
-const LAGOS_LOCATION = { lat: 6.537278579005752, lng: 3.3148704496574943 };
-
-const SANTIAGO_CAMERA_STATE = {
-  center: SANTIAGO_LOCATION,
-  zoom: 10,
-  heading: 0,
-  tilt: 0,
+var options = {
+  enableHighAccuracy: true,
+  timeout: 5000,
+  maximumAge: 0,
 };
 
-const LAGOS_CAMERA_STATE = {
-  center: LAGOS_LOCATION,
-  zoom: 10,
-  heading: 0,
-  tilt: 0,
-};
 
 function App() {
-  const [cameraState, setCameraState] = useState<MapCameraProps>(
-    SANTIAGO_CAMERA_STATE
-  );
-  const [city, setCity] = useState('santiago');
+  //const [cameraState, setCameraState] = useState<MapCameraProps>();
+  const [radius, setRadius] = useState({ values: [0] });
+  const [curCrd, setCurCrd] = useState({ latitude: 0, longitude: 0 });
+  const [firstGetGeolocation, setFirstGetGeolocation] = useState(false);
 
-  const onCityChange = (e: { target: { value: SetStateAction<string> } }) => {
-    setCity(e.target.value);
-    setCameraState(
-      e.target.value === 'santiago' ? SANTIAGO_CAMERA_STATE : LAGOS_CAMERA_STATE
-    );
-  };
+  async function requestPlaceAPI() {
+
+    await fetch(`https://maps.googleapis.com/maps/api/place/nearbysearch/json?keyword=cruise&location=${curCrd.latitude ?? 0}%${curCrd.longitude ?? 0}&radius=${radius.values[0]}&type=restaurant&key=${MAPS_API_KEY}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    })
+    .then(response => response.json());
+  }
+
+  function errors(err) {
+    console.warn(`ERROR(${err.code}): ${err.message}`);
+  }
+  
+  async function success(pos) {
+    var crd = pos.coords;
+    //setCameraState({
+    //  center: { lat: crd.latitude, lng: crd.longitude },
+    //  zoom: 16,
+    //});
+    const { Map } = await google.maps.importLibrary("maps") as google.maps.MapsLibrary;
+    const map = new Map(document.getElementById('map') as HTMLElement);
+    map.setCenter(new google.maps.LatLng(crd.latitude, crd.longitude));
+    map.setZoom(16);
+    console.log("Your current position is:");
+    console.log(`Latitude : ${crd.latitude}`);
+    console.log(`Longitude: ${crd.longitude}`);
+    console.log(`More or less ${crd.accuracy} meters.`);
+    setCurCrd(crd);
+    requestPlaceAPI();
+  }
+
+  useEffect(() => {
+    if (navigator.geolocation && !firstGetGeolocation) {
+      getUserLocation();
+      setFirstGetGeolocation(true);
+    } else {
+        console.log("Geolocation is not supported by this browser.");
+    }
+  });
+
+  async function getUserLocation() {
+    navigator.permissions
+    .query({ name: "geolocation" })
+    .then(function (result) {
+        console.log(result);
+        if (result.state === "granted") {
+          //If granted then you can directly call your function here
+          navigator.geolocation.getCurrentPosition(success, errors, options);
+        } else if (result.state === "prompt") {
+          //If prompt then the user will be asked to give permission
+          navigator.geolocation.getCurrentPosition(success, errors, options);
+        } else if (result.state === "denied") {
+          //If denied then you have to show instructions to enable location
+        }
+    });
+  }
 
   return (
     <>
-      <h1>Vite + React + Google Maps Platform</h1>
-      <div className="starter-instructions">
-        <h2>Add an API key to reveal the map</h2>
-        <ol>
-          <li>
-            Create a file named <code>.env.local</code> in the root directory.
-            The <code>.local</code> suffix makes sure the file, and your API key
-            within, is ignored when checking in to source control (per the
-            .gitignore file).
-          </li>
-          <li>
-            In the file, add the line:
-            <br />
-            <code>VITE_MAPS_API_KEY=YOUR_API_KEY</code>
-          </li>
-          <li>
-            Press <code>Ctrl+Shift+P</code> (Windows) or <code>Cmd+Shift+P</code> (Mac) to open the command palette. Type "IDX focus" and choose "IDX: Focus on Project IDX View" to open the IDX integrations panel. Enable the Google Maps Platform integration, enable the APIs, and click "Get an API Key".
-          </li>
-          <li>
-            Replace <code>YOUR_API_KEY</code> with an API key you obtained in the previous step.
-          </li>
-        </ol>
-        <h2>Documentation</h2>
-        <p>
-          Visit{' '}
-          <a href="https://developers.google.com/maps" target="_blank">
-            developers.google.com/maps
-          </a>{' '}
-          for more about Google Maps Platform and{' '}
-          <a href="https://goo.gle/react-google-maps" target="_blank">
-            goo.gle/react-google-maps
-          </a>{' '}
-          for documentation and examples related to the
-          @vis.gl/react-google-maps library.
-        </p>
-      </div>
-
-      <div id="city-chooser">
-        <p>
-          <strong>Choose a city to update the state of the map center</strong>
-        </p>
-        <div id="radios">
-          <input
-            type="radio"
-            id="santiago"
-            name="city"
-            value="santiago"
-            checked={city === 'santiago'}
-            onChange={onCityChange}
-          />{' '}
-          Santiago
-          <input
-            type="radio"
-            id="lagos"
-            name="city"
-            value="lagos"
-            checked={city === 'lagos'}
-            onChange={onCityChange}
-          />{' '}
-          Lagos
-        </div>
-      </div>
-
       {/* Be sure to wrap the Map component in a container that has a width and height >0px in order for the map to be visible. */}
-      <div id="map">
-        <APIProvider
-          apiKey={MAPS_API_KEY}
-          solutionChannel="GMP_idx_templates_v0_reactts"
+      <APIProvider 
+        apiKey={MAPS_API_KEY} 
+        onLoad={() => console.log('Maps API has loaded.')}
+        solutionChannel="GMP_idx_templates_v0_reactts"
         >
-          <Map
-            // Get a Map ID to use cloud-based maps styling, advanced markers, and vector maps
-            // Documentation at https://goo.gle/get-map-id
-            mapId={'DEMO_MAP_ID'}
-            disableDefaultUI={true}
-            {...cameraState}
+          <button 
+            onClick={() => getUserLocation()}
           >
-            <Marker position={SANTIAGO_LOCATION} />
-            <Marker position={LAGOS_LOCATION} />
-          </Map>
-        </APIProvider>
-      </div>
+            Refresh Current location
+          </button>
+          <br />
+          Searching Radius
+          <Range            
+            step={0.1}
+            min={0}
+            max={50}
+            values={radius.values}
+            onChange={(values) => setRadius({values})} 
+            renderTrack={({ props, children }) => (
+              <div
+                {...props}
+                style={{
+                  ...props.style,
+                  height: '6px',
+                  width: '100%',
+                  backgroundColor: '#ccc'
+                }}
+              >
+                {children}
+              </div>
+            )}
+            renderThumb={({ props }) => (
+              <div
+                {...props}
+                style={{
+                  ...props.style,
+                  height: '12px',
+                  width: '12px',
+                  backgroundColor: '#999'
+                }}
+              />
+            )}   
+          />
+        <br/>
+        <Map
+            id='map'
+            mapId={'MAP'}
+            //disableDefaultUI={true}
+            defaultZoom={16}
+            //defaultCenter={ { lat: crd.latitude, lng: crd.longitude } }
+            //{...cameraState}
+            gestureHandling={"greedy"}
+            onCameraChanged={ (ev: MapCameraChangedEvent) =>
+              console.log('camera changed:', ev.detail.center, 'zoom:', ev.detail.zoom)
+            }>
+        </Map>
+      </APIProvider>
     </>
   );
 }
