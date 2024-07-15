@@ -10,6 +10,8 @@ import {
 import { Range } from 'react-range';
 import { IRenderThumbParams, IRenderTrackParams } from 'react-range/lib/types';
 import { createRoot } from 'react-dom/client';
+import Collapsible from 'react-collapsible';
+import { FaCaretRight, FaCaretDown } from "react-icons/fa";
 
 // TODO: Get a Google Maps Platform API key:
 /*
@@ -115,56 +117,75 @@ function App() {
   return (
     <>
       {/* Be sure to wrap the Map component in a container that has a width and height >0px in order for the map to be visible. */}
-      <APIProvider 
+      <APIProvider
         apiKey={MAPS_API_KEY} 
         onLoad={() => console.log('Maps API has loaded.')}
         solutionChannel="GMP_idx_templates_v0_reactts"
+      >
+        <div 
+          className='mx-3 my-3'
+          style={ { height:"500px", width: "250px", position: "fixed", left: "40px", zIndex: "999"}}
         >
-          <button
-            style={ { height:"50px", width: "50px", backgroundColor: "black", position: "fixed", left: "40px", zIndex: "999"}}
-            onClick={() => {}}
-          >
-            
-          </button>
-
-          <button 
-            onClick={() => getUserLocation()}
-          >
-            Refresh Current location
-          </button>
-          <br />
-          Searching Radius
-          <Range            
-            step={0.1}
-            min={1}
-            max={1000}
-            values={radius.values}
-            onChange={(values) => setRadius({values})} 
-            renderTrack={({ props, children }) => (
-              <div
-                {...props}
-                style={{
-                  ...props.style,
-                  height: '6px',
-                  width: '100%',
-                  backgroundColor: '#ccc'
-                }}
-              >
-                {children}
+          <Collapsible 
+            trigger={
+              <div className='w-5 h-5 rounded bg-slate-900/[.8] grid grid-cols-1 place-items-center'>
+                <FaCaretRight fill='#f8fafc' className='content-center'/>
               </div>
-            )}
-            renderThumb={({ props }) => (
-              <div
-                {...props}
-                style={{
-                  ...props.style,
-                  height: '12px',
-                  width: '12px',
-                  backgroundColor: '#999'
-                }}
-              />
-            )}   
-          />
+            }
+            triggerWhenOpen={
+              <div>
+                <FaCaretDown />
+              </div>
+            }
+            onClick={() => {
+
+            }}
+          >
+            <div className='rounded bg-slate-900/[.8] grid grid-cols-1 justify-items-center' >
+              <button 
+                className='mt-3 w-11/12 '
+                onClick={() => getUserLocation()}
+              >
+                Refresh Current location
+              </button>
+              <div className='mb-3 w-10/12'>
+                <div className='text-white'>Searching Radius</div>
+                <Range
+                  step={0.1}
+                  min={1}
+                  max={1000}
+                  values={radius.values}
+                  onChange={(values) => setRadius({values})} 
+                  renderTrack={({ props, children }) => (
+                    <div
+                      {...props}
+                      style={{
+                        ...props.style,
+                        height: '6px',
+                        width: '100%',
+                        backgroundColor: '#ccc'
+                      }}
+                    >
+                      {children}
+                    </div>
+                  )}
+                  renderThumb={({ props }) => (
+                    <div
+                      {...props}
+                      style={{
+                        ...props.style,
+                        height: '12px',
+                        width: '12px',
+                        backgroundColor: '#999'
+                      }}
+                    />
+                  )}   
+                />
+              </div>              
+            </div>
+          </Collapsible>
+        </div>
+        <br/>
         <br/>
         <Map
             id='map'
