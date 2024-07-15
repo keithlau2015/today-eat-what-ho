@@ -12,6 +12,7 @@ import { IRenderThumbParams, IRenderTrackParams } from 'react-range/lib/types';
 import { createRoot } from 'react-dom/client';
 import Collapsible from 'react-collapsible';
 import { FaCaretRight, FaCaretDown } from "react-icons/fa";
+import { FaPerson } from "react-icons/fa6";
 
 // TODO: Get a Google Maps Platform API key:
 /*
@@ -37,33 +38,64 @@ function App() {
   const [curCrd, setCurCrd] = useState({ latitude: 0, longitude: 0 });
   const [firstGetGeolocation, setFirstGetGeolocation] = useState(false);
 
-  async function requestPlaceAPI() {
-    const response = await fetch(`https://places.googleapis.com/v1/places:searchNearby`, {
-      mode: "cors",
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Goog-Api-Key': MAPS_API_KEY,
-        'X-Goog-FieldMask': 'places.displayName'
+  async function requestPlaceAPI(map:google.maps.Map) {
+    const { Place, SearchNearbyRankPreference } = await google.maps.importLibrary('places') as google.maps.PlacesLibrary;
+    let center = new google.maps.LatLng(curCrd.latitude, curCrd.longitude);
+    const request = {
+      // required parameters
+      fields: ['displayName', 'location', 'businessStatus'],
+      locationRestriction: {
+          center: center,
+          radius: 500, 
       },
-      body: JSON.stringify({
-        'includedTypes': ["restaurant"],
-        "maxResultCount": 10,
-        "locationRestriction": {
-          "circle": {
-            "center": {
-              "latitude": curCrd.latitude,
-              "longitude": curCrd.longitude},
-            "radius": radius.values[0]
-          }
-        }
-      })
-    });
-    const jsonObj = await response.json();
-    console.log(jsonObj);
-    const places = jsonObj.places;
-    console.log(places);
+      // optional parameters
+      includedPrimaryTypes: ['restaurant'],
+      maxResultCount: 10,
+      rankPreference: SearchNearbyRankPreference.POPULARITY,
+      language: 'en-US',
+      region: 'us',
+    };
+
+    const { places } = await Place.searchNearby(request);
+    
+    if (places.length) {
+      console.log(places);
+      const { LatLngBounds } = await google.maps.importLibrary("core") as google.maps.CoreLibrary;
+      const bounds = new LatLngBounds();
+      bounds.extend(center as google.maps.LatLng);
+      const rndInt = Math.floor(Math.random() * (places.length - 0 + 1) + 0);
+      const gachaPlace = places[rndInt];
+      //Loop through and get all the results.
+      //places.forEach((place) => {
+      //    new google.maps.Marker({
+      //      position: place.location,
+      //      map,
+      //      label: {
+      //        text: "\ue56c", // codepoint from https://fonts.google.com/icons
+      //        fontFamily: "Material Icons",
+      //        color: "#ffffff",
+      //        fontSize: "18px",
+      //      },
+      //    });
+      //    bounds.extend(place.location as google.maps.LatLng);
+      //});
+      new google.maps.Marker({
+        position: gachaPlace.location,
+        map,
+        label: {
+          text: "\ue56c", // codepoint from https://fonts.google.com/icons
+          fontFamily: "Material Icons",
+          color: "#ffffff",
+          fontSize: "18px",
+        },
+      });
+      bounds.extend(gachaPlace.location as google.maps.LatLng);
+      map.fitBounds(bounds);
+    } else {
+        console.log("No results");
+    }
   }
+
 
   function errors(err) {
     console.warn(`ERROR(${err.code}): ${err.message}`);
@@ -85,7 +117,18 @@ function App() {
     console.log(`More or less ${crd.accuracy} meters.`);
     console.log(`Current radius ${radius.values[0]}.`);
     setCurCrd(crd);
-    requestPlaceAPI();
+    //Set current location
+    new google.maps.Marker({
+      position: { lat: curCrd.latitude, lng: curCrd.longitude },
+      map,
+      label: {
+        text: "\ue566", // codepoint from https://fonts.google.com/icons
+        fontFamily: "Material Icons",
+        color: "#ffffff",
+        fontSize: "18px",
+      },
+    });
+    requestPlaceAPI(map);
   }
 
   useEffect(() => {
@@ -122,6 +165,7 @@ function App() {
         onLoad={() => console.log('Maps API has loaded.')}
         solutionChannel="GMP_idx_templates_v0_reactts"
       >
+        <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
         <div 
           className='mx-3 my-3'
           style={ { height:"500px", width: "250px", position: "fixed", left: "40px", zIndex: "999"}}
@@ -141,14 +185,8 @@ function App() {
 
             }}
           >
-            <div className='rounded bg-slate-900/[.8] grid grid-cols-1 justify-items-center' >
-              <button 
-                className='mt-3 w-11/12 '
-                onClick={() => getUserLocation()}
-              >
-                Refresh Current location
-              </button>
-              <div className='mb-3 w-10/12'>
+            <div className='rounded bg-slate-900/[.8] grid grid-cols-1 gap-3 justify-items-center' >              
+              <div className='mt-3 w-10/12'>
                 <div className='text-white'>Searching Radius</div>
                 <Range
                   step={0.1}
@@ -181,7 +219,13 @@ function App() {
                     />
                   )}   
                 />
-              </div>              
+              </div>
+              <button 
+                className='mb-3 w-9/12 h-8'
+                onClick={() => getUserLocation()}
+              >
+                食咩好
+              </button>         
             </div>
           </Collapsible>
         </div>
