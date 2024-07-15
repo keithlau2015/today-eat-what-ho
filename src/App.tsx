@@ -36,6 +36,7 @@ function App() {
   //const [cameraState, setCameraState] = useState<MapCameraProps>();
   const [radius, setRadius] = useState({ values: [1] });
   const [curCrd, setCurCrd] = useState({ latitude: 0, longitude: 0 });
+  const [limit, setLimit] = useState({ values: [10] });
   const [firstGetGeolocation, setFirstGetGeolocation] = useState(false);
 
   async function requestPlaceAPI(map:google.maps.Map) {
@@ -79,7 +80,7 @@ function App() {
       //    });
       //    bounds.extend(place.location as google.maps.LatLng);
       //});
-      new google.maps.Marker({
+      const gachaMaker = new google.maps.Marker({
         position: gachaPlace.location,
         map,
         label: {
@@ -88,7 +89,15 @@ function App() {
           color: "#ffffff",
           fontSize: "18px",
         },
+        title: gachaPlace.displayName
       });
+
+      var infowindow = new google.maps.InfoWindow();
+      google.maps.event.addListener(gachaMaker, "click", () => {
+        infowindow.setContent(gachaPlace.displayName || "");
+        infowindow.open(map);
+      });
+
       bounds.extend(gachaPlace.location as google.maps.LatLng);
       map.fitBounds(bounds);
     } else {
@@ -187,9 +196,9 @@ function App() {
           >
             <div className='rounded bg-slate-900/[.8] grid grid-cols-1 gap-3 justify-items-center' >              
               <div className='mt-3 w-10/12'>
-                <div className='text-white'>Searching Radius</div>
+                <div className='text-white'>搜索範圍: {radius.values[0]}</div>
                 <Range
-                  step={0.1}
+                  step={1}
                   min={1}
                   max={1000}
                   values={radius.values}
@@ -220,7 +229,41 @@ function App() {
                   )}   
                 />
               </div>
-              <button 
+              <div className='mt-3 w-10/12'>
+                <div className='text-white'>搜索數量限制: {limit.values[0]}</div>
+                <Range
+                  step={1}
+                  min={10}
+                  max={100}
+                  values={limit.values}
+                  onChange={(values) => setLimit({values})} 
+                  renderTrack={({ props, children }) => (
+                    <div
+                      {...props}
+                      style={{
+                        ...props.style,
+                        height: '6px',
+                        width: '100%',
+                        backgroundColor: '#ccc'
+                      }}
+                    >
+                      {children}
+                    </div>
+                  )}
+                  renderThumb={({ props }) => (
+                    <div
+                      {...props}
+                      style={{
+                        ...props.style,
+                        height: '12px',
+                        width: '12px',
+                        backgroundColor: '#999'
+                      }}
+                    />
+                  )}   
+                />
+              </div>
+              <button
                 className='mb-3 w-9/12 h-8'
                 onClick={() => getUserLocation()}
               >
