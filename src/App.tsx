@@ -44,7 +44,7 @@ function App() {
     let center = new google.maps.LatLng(curCrd.latitude, curCrd.longitude);
     const request = {
       // required parameters
-      fields: ['displayName', 'location', 'businessStatus'],
+      fields: ['displayName', 'location', 'businessStatus', 'googleMapsURI'],
       locationRestriction: {
           center: center,
           radius: 500, 
@@ -66,6 +66,7 @@ function App() {
       bounds.extend(center as google.maps.LatLng);
       const rndInt = Math.floor(Math.random() * (places.length - 0 + 1) + 0);
       const gachaPlace = places[rndInt];
+      console.log(gachaPlace);
       //Loop through and get all the results.
       //places.forEach((place) => {
       //    new google.maps.Marker({
@@ -92,14 +93,13 @@ function App() {
         title: gachaPlace.displayName
       });
 
-  const infowindow = new google.maps.InfoWindow({
-    content: const infowindow = new google.maps.InfoWindow({
-    content: gachaMaker?.displayName || ""
-  });
+      const infowindow = new google.maps.InfoWindow({
+        content: `${gachaPlace?.displayName || ""} <br> <a href=${gachaPlace?.googleMapsURI || ""}>${gachaPlace?.googleMapsURI || ""}</a>`
+      });
 
-  gachaMarker.addListener("click", () => {
-    infowindow.open(gachaMarker.map, gachaMarker);
-  });
+      gachaMaker.addListener("click", () => {
+        infowindow.open(gachaMaker.getMap(), gachaMaker);
+      });
 
       bounds.extend(gachaPlace.location as google.maps.LatLng);
       map.fitBounds(bounds);
