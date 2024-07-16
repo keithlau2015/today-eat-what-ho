@@ -92,11 +92,14 @@ function App() {
         title: gachaPlace.displayName
       });
 
-      var infowindow = new google.maps.InfoWindow();
-      google.maps.event.addListener(gachaMaker, "click", () => {
-        infowindow.setContent(gachaPlace.displayName || "");
-        infowindow.open(map);
-      });
+  const infowindow = new google.maps.InfoWindow({
+    content: const infowindow = new google.maps.InfoWindow({
+    content: gachaMaker?.displayName || ""
+  });
+
+  gachaMarker.addListener("click", () => {
+    infowindow.open(gachaMarker.map, gachaMarker);
+  });
 
       bounds.extend(gachaPlace.location as google.maps.LatLng);
       map.fitBounds(bounds);
